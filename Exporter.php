@@ -92,6 +92,12 @@ class Exporter
           );
 
           $this->getAttachedTaxonomies($post->ID, $type, $slug, $post->post_name);
+			
+          if (get_field('gallery_slider', $post->ID)) {
+            $this->collections[$slug]["/{$slug}/" . $post->post_name]['data']['project_gallery'] = array_map(function($item) {
+              return ["id" => $item['id'], "url" => $item['url'], "alt" => $item['alt'], "caption" => $item['caption']];
+            }, get_field('gallery_slider', $post->ID));
+          }
 
           foreach ($this->metadata('post', $post) as $key => $meta) {
               $this->collections[$slug]["/{$slug}/" . $post->post_name]['data'][$key] = reset($meta);
@@ -140,10 +146,23 @@ class Exporter
                 'order' => date("Y-m-d", strtotime($post->post_date)),
                 'data'  => array(
                     'title'   => $post->post_title,
-					          'product_code' => get_post_meta($post->ID, '_sku', true),
+					'product_code' => get_post_meta($post->ID, '_sku', true),
                     'content' => trim(strip_shortcodes(strip_tags($content, "<br><p><img><h1><h2><h3><ul><ol><li><h4><h5><h6><blockquote><em><strong><table><thead><tbody><th><td><tr><a><button><canvas><cite><i><small><strong><sub><sup>"))),
                     'author'  => $author,
                     'featured_image_url' => get_the_post_thumbnail_url($post->ID, 'full'),
+                    'product_360_view' => get_field('3d', $post->ID),
+					'specifications' => get_field('spec_page_link', $post->ID),
+					'plan_view' => array_map(function($item) {
+						if (!$item) return;
+						return ["image_url" => $item['image']['url'], "title" => $item['title']];
+					}, get_field('plan_view', $post->ID ) ?? []) ?? null,
+					'product_downloads' => array_map(function($item) {
+						if (!$item) return;
+						return ["download_url" => $item['pdf_link']];
+					}, get_field('download', $post->ID ) ?? []) ?? null,
+                    'product_gallery' => array_map(function($item) {
+                      return ["url" => wp_get_attachment_image_url($item, $post->ID)];
+                    }, explode(",", get_post_meta($post->ID, '_product_image_gallery')[0])) ?? null,
                 ),
             );
 
